@@ -28,7 +28,6 @@ package firmata
 
 import (
 	"fmt"
-	"github.com/tarm/goserial"
 	"io"
 	"log"
 	"strconv"
@@ -95,10 +94,7 @@ type pinCapability struct {
 
 type Board struct {
 	Name            string
-	config          *serial.Config
-	device          string
 	Debug           int // 0 no debug
-	baud            int
 	serial          io.ReadWriteCloser
 	Reader          chan FirmataMsg
 	Writer          chan FirmataMsg
@@ -109,34 +105,15 @@ type Board struct {
 	version         map[string]byte
 }
 
-// Setup the board to start reading and writing
-// It needs a device in the format "/dev/ttyUSB0"
-// and a baud rate eg. 57600
-func NewBoard(device string, baud int) (*Board, error) {
+// Setup the board to start reading and writing.
+// It needs a io.ReadWriteCloser with which to speak to the device.
+func NewBoard(serial io.ReadWriteCloser) (*Board) {
 	board := new(Board)
-	board.device = device
-	board.baud = baud
-	board.config = &serial.Config{Name: board.device, Baud: board.baud}
-	var err error
-	board.serial, err = serial.OpenPort(board.config)
-	if err != nil {
-		log.Fatal("Could not open port")
-		return board, err
-	}
+  board.serial = serial
 	board.GetReader()
 	board.GetCapabilities()
 	board.GetAnalogMapping()
-	return board, err
-}
-
-// Return the Device  the board is using
-func (board *Board) Device() string {
-	return board.device
-}
-
-// Return the baud rate the device is using
-func (board *Board) Baud() int {
-	return board.baud
+	return board
 }
 
 func (board *Board) process_sysex(msgdata []byte) FirmataMsg {
